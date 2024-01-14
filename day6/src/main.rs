@@ -82,4 +82,7 @@ fn main() {
         .map(|record| record.find_possible_number_of_times_to_beat_record())
         .product();
     println!("{}", solution1);
+
+    let record = Record::new(40817772, 219101213651089);
+    println!("{}", record.find_possible_number_of_times_to_beat_record());
 }
