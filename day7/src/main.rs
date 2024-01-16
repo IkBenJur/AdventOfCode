@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{HashSet, HashMap},
+    collections::HashMap,
     fs::File,
     io::{BufRead, BufReader},
     path::Path,
@@ -29,37 +29,44 @@ impl Hand {
     }
 
     fn worth_of_card(&self) -> CardType {
-        let char_set: HashSet<char> = self.cards.chars().collect();
+        let mut char_count: HashMap<char, i32> = HashMap::new();
 
-        if char_set.len() == 1 {
+        for ch in self.cards.chars() {
+            let counter = char_count.entry(ch).or_insert(0);
+            *counter += 1;
+        }
+
+        if (char_count.contains_key(&'J')) && (char_count.get(&'J').unwrap() != &5) {
+            let (highest_key, max_value) = char_count.iter().filter(|&(&key, _)| key != 'J').max_by_key(|&(_, value)| value).unwrap();
+
+            char_count.insert(*highest_key, max_value + char_count.get(&'J').unwrap_or(&0));
+            char_count.insert('J', 0);
+        }
+
+        if char_count.values().any(|&count| count == 5) {
             return CardType::Five;
         }
 
-        if char_set.len() == 2 || char_set.len() == 3 {
-            let mut char_count: HashMap<char, i32> = HashMap::new();
-
-            for ch in self.cards.chars() {
-                let counter = char_count.entry(ch).or_insert(0);
-                *counter += 1;
-            }
-
-            if char_count.values().any(|&count| count == 4) {
-                return CardType::Four;
-            }
-
-            if char_count.values().any(|&count| count == 3) && char_count.values().any(|&count| count == 2){
-                return CardType::Full;
-            }
-
-            if char_count.values().any(|&count| count == 3) {
-                return CardType::Three
-            }
-
-            return CardType::Two;
+        if char_count.values().any(|&count| count == 4) {
+            return CardType::Four;
         }
 
-        if char_set.len() == 4 {
-            return CardType::One;
+        if char_count.values().any(|&count| count == 3) && char_count.values().any(|&count| count == 2){
+            return CardType::Full;
+        }
+
+        if char_count.values().any(|&count| count == 3) {
+            return CardType::Three;
+        }
+
+        if char_count.values().any(|&count| count == 2) {
+            let amount_of_pairs = char_count.values().filter(|&&value| value == 2).count();
+
+            if amount_of_pairs == 2 {
+                return CardType::Two;
+            } else {
+                return CardType::One;
+            }
         }
 
         return CardType::High;
@@ -93,7 +100,7 @@ fn return_if_card_is_higher(hand_a: &Hand, hand_b: &Hand) -> Ordering {
     let worth_of_card_b = hand_b.worth_of_card();
 
     if worth_of_card_a == worth_of_card_b {
-        let order_of_cards = vec!['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+        let order_of_cards = vec!['A', 'K', 'Q', 'T', '9', '8', '7', '6', '5', '4', '3', '2', 'J'];
         for i in 0..=hand_a.cards.len() {
             let char_a = hand_a.cards.chars().nth(i).unwrap();
             let char_b = hand_b.cards.chars().nth(i).unwrap();
@@ -113,59 +120,22 @@ fn return_if_card_is_higher(hand_a: &Hand, hand_b: &Hand) -> Ordering {
         }
     }
 
-    if worth_of_card_a == CardType::Five {
-        return Ordering::Greater;
+    match (worth_of_card_a, worth_of_card_b) {
+        (CardType::Five, _) => Ordering::Greater,
+        (_, CardType::Five) => Ordering::Less,
+        (CardType::Four, _) => Ordering::Greater,
+        (_, CardType::Four) => Ordering::Less,
+        (CardType::Full, _) => Ordering::Greater,
+        (_, CardType::Full) => Ordering::Less,
+        (CardType::Three, _) => Ordering::Greater,
+        (_, CardType::Three) => Ordering::Less,
+        (CardType::Two, _) => Ordering::Greater,
+        (_, CardType::Two) => Ordering::Less,
+        (CardType::One, _) => Ordering::Greater,
+        (_, CardType::One) => Ordering::Less,
+        (CardType::High, _) => Ordering::Greater,
+        (_, _) => Ordering::Less,
     }
-
-    if worth_of_card_b == CardType::Five {
-        return Ordering::Less;
-    }
-
-    if worth_of_card_a == CardType::Four {
-        return Ordering::Greater;
-    }
-
-    if worth_of_card_b == CardType::Four {
-        return Ordering::Less;
-    }
-
-    if worth_of_card_a == CardType::Full {
-        return Ordering::Greater;
-    }
-
-    if worth_of_card_b == CardType::Full {
-        return Ordering::Less;
-    }
-
-    if worth_of_card_a == CardType::Three {
-        return Ordering::Greater;
-    }
-
-    if worth_of_card_b == CardType::Three {
-        return Ordering::Less;
-    }
-
-    if worth_of_card_a == CardType::Two {
-        return Ordering::Greater;
-    }
-
-    if worth_of_card_b == CardType::Two {
-        return Ordering::Less;
-    }
-
-    if worth_of_card_a == CardType::One {
-        return Ordering::Greater;
-    }
-
-    if worth_of_card_b == CardType::One {
-        return Ordering::Less;
-    }
-
-    if worth_of_card_a == CardType::High {
-        return Ordering::Greater;
-    }
-
-    return Ordering::Less;
 }
 
 fn main() {
