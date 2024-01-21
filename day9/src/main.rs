@@ -28,6 +28,21 @@ fn extrapolate_new_num(mut diffs: Vec<Vec<i32>>) -> i32 {
     return 0;
 }
 
+fn extrapolate_history(mut diffs: Vec<Vec<i32>>) -> i32 {
+    for i in (1..diffs.len()).rev() {
+        let arr = diffs[i].clone();
+        let next_arr = diffs[i - 1].clone();
+
+        diffs[i - 1].insert(0, next_arr.first().unwrap() - arr.first().unwrap());
+    }
+
+    if let Some(extrapolated_num) = diffs.first().unwrap().first() {
+        return *extrapolated_num;
+    }
+
+    return 0;
+}
+
 fn load_file_into_vec(input_file: impl AsRef<Path>) -> Vec<String> {
     let file = File::open(input_file).expect("Failed to find file");
     let reader = BufReader::new(file);
@@ -44,10 +59,11 @@ fn main() {
         .map(|line| line.split(" ").map(|s| s.parse::<i32>().unwrap()).collect())
         .collect();
     let mut sum = 0;
+    let mut sum_history = 0;
 
     for line in values {
         let mut diffs: Vec<Vec<i32>> = Vec::from([line]);
-    
+
         while !diffs
             .last()
             .into_iter()
@@ -58,8 +74,10 @@ fn main() {
             }
         }
 
-        sum += extrapolate_new_num(diffs);
+        sum += extrapolate_new_num(diffs.clone());
+        sum_history += extrapolate_history(diffs);
     }
 
-    println!("{:#?}", sum);
+    println!("{}", sum);
+    println!("{}", sum_history);
 }
